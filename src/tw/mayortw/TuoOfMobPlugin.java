@@ -12,14 +12,17 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
-    private int selectedIndex = -1;
-    private List<MobRoot> rootMobs = new ArrayList<>();
+    private List<MobRoot> rootMobs = new CopyOnWriteArrayList<>();
+    private Map<Player, MobRoot> playerSelections = new ConcurrentHashMap<>();
 
     @Override
     public void onEnable() {
@@ -47,21 +50,20 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
         if(player.getInventory().getItemInMainHand().getType() == Material.BONE) {
 
-            select(entity);
+            select(player, entity);
             eve.setCancelled(true);
 
-        } else if(player.getInventory().getItemInMainHand().getType() == Material.FEATHER) {
-
-            if(selectedIndex >= 0 && selectedIndex < rootMobs.size()) {
-                rootMobs.get(selectedIndex).addEntity(entity);
+        } else {
+            MobRoot root = playerSelections.get(player);
+            if(root != null) {
+                if(player.getInventory().getItemInMainHand().getType() == Material.FEATHER) {
+                    root.addEntity(entity);
+                    eve.setCancelled(true);
+                } else if(player.getInventory().getItemInMainHand().getType() == Material.BLAZE_ROD) {
+                    root.removeEntity(entity);
+                    eve.setCancelled(true);
+                }
             }
-            eve.setCancelled(true);
-
-        } else if(player.getInventory().getItemInMainHand().getType() == Material.BLAZE_ROD) {
-
-            rootMobs.get(selectedIndex).removeEntity(entity);
-            eve.setCancelled(true);
-
         }
     }
 
@@ -72,8 +74,13 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
         Material material = eve.getMaterial();
         if(material == Material.BONE) {
-            deselect();
+            deselect(eve.getPlayer());
         }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent eve) {
+        cleanEntityList();
     }
 
     @Override
@@ -81,6 +88,14 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         boolean rst = false;
 
         if(cmd.getName().equalsIgnoreCase("tuo")) {
+
+            if(!(sender instanceof Player)) {
+                sender.sendMessage("You are not player");
+                return true;
+            }
+
+            MobRoot root = playerSelections.get((Player) sender);
+            
             if(args.length > 0) {
                 switch(args[0].toLowerCase()) {
                     case "sel":
@@ -94,31 +109,26 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                                 break;
                             }
 
-                            if(selectedIndex < 0 || selectedIndex >= rootMobs.size()) {
+                            if(root == null) {
                                 sender.sendMessage("No selected root");
-                                rst = true;
-                            } else if(!(sender instanceof Entity)) {
-                                sender.sendMessage("You are not entity");
-                                rst = true;
                             } else {
-                                Entity senderEnt = (Entity) sender;
-                                MobRoot root = rootMobs.get(selectedIndex);
-                                for(Entity entity : senderEnt.getNearbyEntities(range, range, range)) {
+                                for(Entity entity : ((Entity) sender).getNearbyEntities(range, range, range)) {
                                     if(!root.getRootEntity().equals(entity)) {
                                         root.addEntity(entity);
                                     }
                                 }
-                                rst = true;
                             }
+                            rst = true;
                         } else {
                             rst = false;
                         }
                         break;
                     case "clear":
-                        if(selectedIndex < 0 || selectedIndex >= rootMobs.size()) {
+                        if(root == null) {
                             sender.sendMessage("No selected root");
                         } else {
-                            rootMobs.get(selectedIndex).removeAllEntity();
+                            root.removeAllEntity();
+                            cleanEntityList();
                         }
                         rst = true;
                         break;
@@ -133,7 +143,22 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         return rst;
     }
 
-    private MobRoot findRoot(Entity entity) {
+    private void cleanEntityList() {
+        for(MobRoot root : rootMobs) {
+            if(root.entityCount() <= 0 || root.getRootEntity().isDead()) {
+                root.removeAllEntity();
+                rootMobs.remove(root);
+                getLogger().info("Removed " + root.toString() + " from list");
+            }
+        }
+        for(Player player : playerSelections.keySet()) {
+            if(!player.isOnline()) {
+                deselect(player);
+            }
+        }
+    }
+
+    private MobRoot findMobRoot(Entity entity) {
         for(MobRoot root : rootMobs) {
             if(root.getRootEntity().equals(entity))
                 return root;
@@ -141,40 +166,34 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         return null;
     }
 
-    private void select(Entity entity) {
-        if(selectedIndex >= 0 && selectedIndex < rootMobs.size() &&
-                rootMobs.get(selectedIndex).getRootEntity().equals(entity))
-            return;
-        deselect();
+    private void select(Player player, Entity entity) {
 
-        MobRoot root = findRoot(entity);
+        MobRoot selected = playerSelections.get(player);
+        if(selected != null && selected.getRootEntity().equals(entity))
+            return;
+        deselect(player);
+
+        MobRoot root = findMobRoot(entity);
         if(root == null) {
             root = new MobRoot(entity);
             rootMobs.add(root);
-            getLogger().info("Added " + root.toString() + " from list");
+            getLogger().info("Added " + root.toString() + " to list");
         }
-        selectedIndex = rootMobs.indexOf(root);
 
         root.setMark(true);
+        playerSelections.put(player, root);
 
         getLogger().info("Selected " + root.toString());
     }
 
-    private void deselect() {
-        if(selectedIndex >= 0 && selectedIndex < rootMobs.size()) {
-
-            MobRoot root = rootMobs.get(selectedIndex);
+    private void deselect(Player player) {
+        MobRoot root = playerSelections.get(player);
+        if(root != null) {
 
             root.setMark(false);
+            playerSelections.remove(player);
 
             getLogger().info("Deselected " + root.toString());
-
-            if(root.entityCount() <= 0) {
-                MobRoot removed = rootMobs.remove(selectedIndex);
-                getLogger().info("Removed " + removed.toString() + " from list");
-            }
-
-            selectedIndex = -1;
         }
     }
 }
