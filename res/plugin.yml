@@ -1,9 +1,14 @@
 name: TuoOfMob
 main: tw.mayortw.TuoOfMobPlugin
-version: 0.3
+version: 0.3.5
 description: "一坨怪"
 author: "R26"
+
+permissions:
+    tuo.use:
+        default: op
 
 commands:
     tuo:
         usage: "Usage: /<command> [sel [range] | clear]"
+        permission: tuo.use

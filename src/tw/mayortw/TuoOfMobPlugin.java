@@ -111,6 +111,8 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         Player player = eve.getPlayer();
         Entity entity = eve.getRightClicked();
 
+        if(!player.hasPermission("tuo.use")) return;
+
         if(player.getInventory().getItemInMainHand().getType() == Material.BONE) {
 
             select(player, entity);
