@@ -148,7 +148,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
             if(root.entityCount() <= 0 || root.getRootEntity().isDead()) {
                 root.removeAllEntity();
                 rootMobs.remove(root);
-                getLogger().info("Removed " + root.toString() + " from list");
+                getLogger().fine("Removed " + root.toString() + " from list");
             }
         }
         for(Player player : playerSelections.keySet()) {
@@ -168,22 +168,22 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
     private void select(Player player, Entity entity) {
 
-        MobRoot selected = playerSelections.get(player);
-        if(selected != null && selected.getRootEntity().equals(entity))
-            return;
         deselect(player);
 
         MobRoot root = findMobRoot(entity);
         if(root == null) {
             root = new MobRoot(entity);
             rootMobs.add(root);
-            getLogger().info("Added " + root.toString() + " to list");
+            getLogger().fine("Added " + root.toString() + " to list");
         }
 
         root.setMark(true);
-        playerSelections.put(player, root);
 
-        getLogger().info("Selected " + root.toString());
+        MobRoot selected = playerSelections.get(player);
+        if(selected == null || !selected.getRootEntity().equals(entity))
+            playerSelections.put(player, root);
+
+        getLogger().fine("Selected " + root.toString());
     }
 
     private void deselect(Player player) {
@@ -193,7 +193,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
             root.setMark(false);
             playerSelections.remove(player);
 
-            getLogger().info("Deselected " + root.toString());
+            getLogger().fine("Deselected " + root.toString());
         }
     }
 }

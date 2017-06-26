@@ -32,14 +32,14 @@ public class MobRoot {
             child.setCustomNameVisible(true);
         }
 
-        Bukkit.getLogger().info("Added " + child.toString());
+        Bukkit.getLogger().fine("Added " + child.toString());
     }
 
     public void removeEntity(Entity child) {
         child.setCustomName(null);
         child.setCustomNameVisible(false);
         Location c = children.remove(child);
-        if(c != null) Bukkit.getLogger().info("Removed " + child.toString());
+        if(c != null) Bukkit.getLogger().fine("Removed " + child.toString());
     }
 
     public void removeAllEntity() {
