@@ -1,5 +1,7 @@
 package tw.mayortw;
 
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.Material;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -60,6 +62,59 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
             eve.setCancelled(true);
         }
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        boolean rst = false;
+
+        if(cmd.getName().equalsIgnoreCase("tuo")) {
+            if(args.length > 0) {
+                switch(args[0].toLowerCase()) {
+                    case "sel":
+                        if(args.length > 1) {
+                            if(selectedIndex < 0 || selectedIndex >= rootMobs.size()) {
+                                sender.sendMessage("No selected root");
+                                rst = true;
+                            } else if(sender instanceof Entity) {
+                                Entity senderEnt = (Entity) sender;
+                                try {
+                                    int range = Integer.parseInt(args[1]);
+                                    MobRoot root = rootMobs.get(selectedIndex);
+                                    for(Entity entity : senderEnt.getNearbyEntities(range, range, range)) {
+                                        if(!root.getRootEntity().equals(entity)) {
+                                            root.addEntity(entity);
+                                        }
+                                    }
+                                    rst = true;
+                                } catch(NumberFormatException e) {
+                                    rst = false;
+                                }
+                            } else {
+                                sender.sendMessage("You are not entity");
+                                rst = true;
+                            }
+                        } else {
+                            rst = false;
+                        }
+                        break;
+                    case "clear":
+                        if(selectedIndex < 0 || selectedIndex >= rootMobs.size()) {
+                            sender.sendMessage("No selected root");
+                        } else {
+                            rootMobs.get(selectedIndex).removeAllEntity();
+                        }
+                        rst = true;
+                        break;
+                    default:
+                        rst = false;
+                }
+            } else {
+                rst = false;
+            }
+        }
+
+        return rst;
     }
 
     @EventHandler

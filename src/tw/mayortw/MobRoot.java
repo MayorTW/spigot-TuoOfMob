@@ -21,7 +21,8 @@ public class MobRoot {
     }
 
     public void addEntity(Entity child) {
-        if(entity == null || entity.isDead()) return;
+        if(entity.isDead()) return;
+        if(child.equals(entity)) return;
         if(children.containsKey(child)) return;
 
         children.put(child, getLocalLoc(entity.getLocation(), child.getLocation()));
@@ -38,6 +39,12 @@ public class MobRoot {
         child.setCustomNameVisible(false);
         Location c = children.remove(child);
         if(c != null) System.out.println("Removed " + child.toString());
+    }
+
+    public void removeAllEntity() {
+        for(Map.Entry<Entity, Location> e : children.entrySet()) {
+            removeEntity(e.getKey());
+        }
     }
 
     public void setMarkChildren(boolean mark) {
