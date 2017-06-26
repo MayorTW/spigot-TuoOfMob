@@ -30,7 +30,9 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
     private Map<Player, MobRoot> playerSelections = new ConcurrentHashMap<>();
 
     @Override
-    public void onLoad() {
+    public void onEnable() {
+        getServer().getPluginManager().registerEvents(this, this);
+
         getLogger().info("Loading data");
 
         FileConfiguration config = getConfig();
@@ -59,11 +61,6 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                 }
             }
         }
-    }
-
-    @Override
-    public void onEnable() {
-        getServer().getPluginManager().registerEvents(this, this);
 
         getServer().getScheduler().runTaskTimer(this, () -> {
             for(MobRoot root : rootMobs) {
