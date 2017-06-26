@@ -30,6 +30,13 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                 root.updatePosition();
             }
         }, 30, 1);
+
+        getLogger().info("TuoOfMob Enabled");
+    }
+
+    @Override
+    public void onDisable() {
+        getLogger().info("TuoOfMob Disabled");
     }
 
     @EventHandler
@@ -38,29 +45,34 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         Player player = eve.getPlayer();
         Entity entity = eve.getRightClicked();
 
-        if(player.getInventory().getItemInMainHand().getType() == Material.BONE ||
-                player.getInventory().getItemInOffHand().getType() == Material.BONE) {
+        if(player.getInventory().getItemInMainHand().getType() == Material.BONE) {
 
             select(entity);
-
             eve.setCancelled(true);
-        } else if(player.getInventory().getItemInMainHand().getType() == Material.FEATHER ||
-                player.getInventory().getItemInOffHand().getType() == Material.FEATHER) {
+
+        } else if(player.getInventory().getItemInMainHand().getType() == Material.FEATHER) {
 
             if(selectedIndex >= 0 && selectedIndex < rootMobs.size()) {
-                MobRoot selected = rootMobs.get(selectedIndex);
-
-                selected.addEntity(entity);
+                rootMobs.get(selectedIndex).addEntity(entity);
             }
-
             eve.setCancelled(true);
-        } else if(player.getInventory().getItemInMainHand().getType() == Material.BLAZE_ROD ||
-                player.getInventory().getItemInOffHand().getType() == Material.BLAZE_ROD) {
-                MobRoot selected = rootMobs.get(selectedIndex);
 
-                selected.removeEntity(entity);
+        } else if(player.getInventory().getItemInMainHand().getType() == Material.BLAZE_ROD) {
 
+            rootMobs.get(selectedIndex).removeEntity(entity);
             eve.setCancelled(true);
+
+        }
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent eve) {
+
+        if(eve.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+
+        Material material = eve.getMaterial();
+        if(material == Material.BONE) {
+            deselect();
         }
     }
 
@@ -73,25 +85,29 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                 switch(args[0].toLowerCase()) {
                     case "sel":
                         if(args.length > 1) {
+
+                            int range;
+                            try {
+                                range = Integer.parseInt(args[1]);
+                            } catch(NumberFormatException e) {
+                                rst = false;
+                                break;
+                            }
+
                             if(selectedIndex < 0 || selectedIndex >= rootMobs.size()) {
                                 sender.sendMessage("No selected root");
                                 rst = true;
-                            } else if(sender instanceof Entity) {
-                                Entity senderEnt = (Entity) sender;
-                                try {
-                                    int range = Integer.parseInt(args[1]);
-                                    MobRoot root = rootMobs.get(selectedIndex);
-                                    for(Entity entity : senderEnt.getNearbyEntities(range, range, range)) {
-                                        if(!root.getRootEntity().equals(entity)) {
-                                            root.addEntity(entity);
-                                        }
-                                    }
-                                    rst = true;
-                                } catch(NumberFormatException e) {
-                                    rst = false;
-                                }
-                            } else {
+                            } else if(!(sender instanceof Entity)) {
                                 sender.sendMessage("You are not entity");
+                                rst = true;
+                            } else {
+                                Entity senderEnt = (Entity) sender;
+                                MobRoot root = rootMobs.get(selectedIndex);
+                                for(Entity entity : senderEnt.getNearbyEntities(range, range, range)) {
+                                    if(!root.getRootEntity().equals(entity)) {
+                                        root.addEntity(entity);
+                                    }
+                                }
                                 rst = true;
                             }
                         } else {
@@ -117,24 +133,10 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         return rst;
     }
 
-    @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent eve) {
-
-        if(eve.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-
-        Block block = eve.getClickedBlock();
-        Material material = eve.getMaterial();
-        Player player = eve.getPlayer();
-
-        if(material == Material.BONE) {
-            deselect();
-        }
-    }
-
     private MobRoot findRoot(Entity entity) {
-        for(MobRoot mob : rootMobs) {
-            if(mob.getRootEntity().equals(entity))
-                return mob;
+        for(MobRoot root : rootMobs) {
+            if(root.getRootEntity().equals(entity))
+                return root;
         }
         return null;
     }
@@ -153,8 +155,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         }
         selectedIndex = rootMobs.indexOf(root);
 
-        entity.setGlowing(true);
-        root.setMarkChildren(true);
+        root.setMark(true);
 
         getLogger().info("Selected " + root.toString());
     }
@@ -164,8 +165,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
             MobRoot root = rootMobs.get(selectedIndex);
 
-            root.getRootEntity().setGlowing(false);
-            root.setMarkChildren(false);
+            root.setMark(false);
 
             getLogger().info("Deselected " + root.toString());
 

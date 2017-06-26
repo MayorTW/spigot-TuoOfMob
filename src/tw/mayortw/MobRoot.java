@@ -1,5 +1,6 @@
 package tw.mayortw;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,14 +32,14 @@ public class MobRoot {
             child.setCustomNameVisible(true);
         }
 
-        System.out.println("Added " + child.toString());
+        Bukkit.getLogger().info("Added " + child.toString());
     }
 
     public void removeEntity(Entity child) {
         child.setCustomName(null);
         child.setCustomNameVisible(false);
         Location c = children.remove(child);
-        if(c != null) System.out.println("Removed " + child.toString());
+        if(c != null) Bukkit.getLogger().info("Removed " + child.toString());
     }
 
     public void removeAllEntity() {
@@ -47,8 +48,9 @@ public class MobRoot {
         }
     }
 
-    public void setMarkChildren(boolean mark) {
+    public void setMark(boolean mark) {
         markEntity = mark;
+        entity.setGlowing(mark);
         for(Map.Entry<Entity, Location> e : children.entrySet()) {
             Entity child = e.getKey();
             if(markEntity) {
