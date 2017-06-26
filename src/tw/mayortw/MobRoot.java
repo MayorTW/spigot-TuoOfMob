@@ -22,11 +22,15 @@ public class MobRoot {
     }
 
     public void addEntity(Entity child) {
+        addEntity(child, getLocalLoc(entity.getLocation(), child.getLocation()));
+    }
+
+    public void addEntity(Entity child, Location offset) {
         if(entity.isDead()) return;
         if(child.equals(entity)) return;
         if(children.containsKey(child)) return;
 
-        children.put(child, getLocalLoc(entity.getLocation(), child.getLocation()));
+        children.put(child, offset);
         if(markEntity) {
             child.setCustomName("Selected");
             child.setCustomNameVisible(true);
@@ -46,6 +50,10 @@ public class MobRoot {
         for(Map.Entry<Entity, Location> e : children.entrySet()) {
             removeEntity(e.getKey());
         }
+    }
+
+    public Map<Entity, Location> getEntityMap() {
+        return children;
     }
 
     public void setMark(boolean mark) {

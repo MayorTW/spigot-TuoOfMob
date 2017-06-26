@@ -2,6 +2,8 @@ package tw.mayortw;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.Material;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -18,11 +20,46 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
+    private final String CONF_PATH = "tuo";
+
     private List<MobRoot> rootMobs = new CopyOnWriteArrayList<>();
     private Map<Player, MobRoot> playerSelections = new ConcurrentHashMap<>();
+
+    @Override
+    public void onLoad() {
+        getLogger().info("Loading data");
+
+        FileConfiguration config = getConfig();
+        ConfigurationSection section = config.getConfigurationSection(CONF_PATH);
+
+        if(section != null) {
+            for(String key : section.getKeys(false)) {
+                Entity entity = getServer().getEntity(UUID.fromString(key));
+                if(entity != null) {
+                    MobRoot root = new MobRoot(entity);
+                    for(String key2 : config.getConfigurationSection(CONF_PATH + "." + key).getKeys(false)) {
+                        String path = CONF_PATH + "." + key + "." + key2;
+
+                        double x = config.getDouble(path + ".x");
+                        double y = config.getDouble(path + ".y");
+                        double z = config.getDouble(path + ".z");
+                        float yaw = (float) config.getDouble(path + ".yaw");
+                        float pitch = (float) config.getDouble(path + ".pitch");
+
+                        root.addEntity(getServer().getEntity(UUID.fromString(key2)),
+                                new Location(entity.getWorld(), x, y, z, yaw, pitch));
+
+                        rootMobs.add(root);
+                        getLogger().fine("Added " + root.toString() + " to list");
+                    }
+                }
+            }
+        }
+    }
 
     @Override
     public void onEnable() {
@@ -39,6 +76,32 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+
+        for(Player player : playerSelections.keySet()) {
+            deselect(player);
+        }
+
+        cleanEntityList();
+
+        getLogger().info("Saving data");
+
+        FileConfiguration config = getConfig();
+        config.set(CONF_PATH, null);
+
+        for(MobRoot root : rootMobs) {
+            Map<Entity, Location> map = root.getEntityMap();
+            for(Map.Entry<Entity, Location> e : map.entrySet()) {
+                String path = CONF_PATH + "." + root.getRootEntity().getUniqueId() + "." + e.getKey().getUniqueId().toString();
+                config.set(path + ".x", e.getValue().getX());
+                config.set(path + ".y", e.getValue().getY());
+                config.set(path + ".z", e.getValue().getZ());
+                config.set(path + ".yaw", e.getValue().getYaw());
+                config.set(path + ".pitch", e.getValue().getPitch());
+            }
+        }
+
+        saveConfig();
+
         getLogger().info("TuoOfMob Disabled");
     }
 
@@ -145,7 +208,8 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
     private void cleanEntityList() {
         for(MobRoot root : rootMobs) {
-            if(root.entityCount() <= 0 || root.getRootEntity().isDead()) {
+            if(root.entityCount() <= 0 ||
+                    root.getRootEntity() == null || root.getRootEntity().isDead()) {
                 root.removeAllEntity();
                 rootMobs.remove(root);
                 getLogger().fine("Removed " + root.toString() + " from list");
