@@ -111,6 +111,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         Player player = eve.getPlayer();
         Entity entity = eve.getRightClicked();
 
+        if(eve.isCancelled()) return;
         if(!player.hasPermission("tuo.use")) return;
 
         if(player.getInventory().getItemInMainHand().getType() == Material.BONE) {
@@ -135,6 +136,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent eve) {
 
+        if(eve.isCancelled()) return;
         if(eve.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
         Material material = eve.getMaterial();
