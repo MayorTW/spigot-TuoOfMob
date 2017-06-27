@@ -145,9 +145,9 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                     case "sel":
                         if(args.length > 1) {
 
-                            int range;
+                            double range;
                             try {
-                                range = Integer.parseInt(args[1]);
+                                range = Double.parseDouble(args[1]);
                             } catch(NumberFormatException e) {
                                 rst = false;
                                 break;
