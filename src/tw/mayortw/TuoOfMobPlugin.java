@@ -1,12 +1,13 @@
 package tw.mayortw;
 
+import org.bukkit.Material;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.Material;
-import org.bukkit.Location;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
@@ -15,6 +16,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,33 +35,8 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
 
-        getLogger().info("Loading data");
-
-        FileConfiguration config = getConfig();
-        ConfigurationSection section = config.getConfigurationSection(CONF_PATH);
-
-        if(section != null) {
-            for(String key : section.getKeys(false)) {
-                Entity entity = getServer().getEntity(UUID.fromString(key));
-                if(entity != null) {
-                    MobRoot root = new MobRoot(entity);
-                    for(String key2 : config.getConfigurationSection(CONF_PATH + "." + key).getKeys(false)) {
-                        String path = CONF_PATH + "." + key + "." + key2;
-
-                        double x = config.getDouble(path + ".x");
-                        double y = config.getDouble(path + ".y");
-                        double z = config.getDouble(path + ".z");
-                        float yaw = (float) config.getDouble(path + ".yaw");
-                        float pitch = (float) config.getDouble(path + ".pitch");
-
-                        root.addEntity(getServer().getEntity(UUID.fromString(key2)),
-                                new Location(entity.getWorld(), x, y, z, yaw, pitch));
-
-                        rootMobs.add(root);
-                        getLogger().fine("Added " + root.toString() + " to list");
-                    }
-                }
-            }
+        for(World world : getServer().getWorlds()) {
+            loadEntities(world.getEntities().toArray(new Entity[0]));
         }
 
         getServer().getScheduler().runTaskTimer(this, () -> {
@@ -100,6 +77,11 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         saveConfig();
 
         getLogger().info("TuoOfMob Disabled");
+    }
+
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent eve) {
+        loadEntities(eve.getChunk().getEntities());
     }
 
     @EventHandler
@@ -205,6 +187,55 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         }
 
         return rst;
+    }
+
+    private void loadEntities(Entity[] entities) {
+
+        FileConfiguration config = getConfig();
+        ConfigurationSection section = config.getConfigurationSection(CONF_PATH);
+
+        if(section != null) {
+            for(String rootId : section.getKeys(false)) {
+                Entity rootEntity = null;
+                for(Entity entity : entities) {
+                    if(entity.getUniqueId().toString().equals(rootId)) {
+                        rootEntity = entity;
+                        break;
+                    }
+                }
+                if(rootEntity != null) {
+
+                    MobRoot root = findMobRoot(rootEntity);
+                    if(root == null) {
+                        root = new MobRoot(rootEntity);
+                        rootMobs.add(root);
+                        getLogger().fine("Added " + root.toString() + " to list");
+                    }
+
+                    for(String childId : config.getConfigurationSection(CONF_PATH + "." + rootId).getKeys(false)) {
+                        String path = CONF_PATH + "." + rootId + "." + childId;
+
+                        double x = config.getDouble(path + ".x");
+                        double y = config.getDouble(path + ".y");
+                        double z = config.getDouble(path + ".z");
+                        float yaw = (float) config.getDouble(path + ".yaw");
+                        float pitch = (float) config.getDouble(path + ".pitch");
+
+                        Entity child = null;
+                        for(Entity entity : entities) {
+                            if(entity.getUniqueId().toString().equals(childId)) {
+                                child = entity;
+                                break;
+                            }
+                        }
+
+                        if(child != null) {
+                            root.addEntity(child, new Location(rootEntity.getWorld(), x, y, z, yaw, pitch));
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void cleanEntityList() {
