@@ -35,9 +35,11 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
 
-        for(World world : getServer().getWorlds()) {
-            loadEntities(world.getEntities().toArray(new Entity[0]));
-        }
+        getServer().getScheduler().runTaskLater(this, () -> {
+            for(World world : getServer().getWorlds()) {
+                loadEntities(world.getEntities().toArray(new Entity[0]));
+            }
+        }, 60);
 
         getServer().getScheduler().runTaskTimer(this, () -> {
             for(MobRoot root : rootMobs) {
