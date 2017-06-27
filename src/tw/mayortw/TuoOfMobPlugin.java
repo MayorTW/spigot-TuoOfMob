@@ -31,6 +31,8 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
     private List<MobRoot> rootMobs = new CopyOnWriteArrayList<>();
     private Map<Player, MobRoot> playerSelections = new ConcurrentHashMap<>();
 
+    private boolean loaded;
+
     @Override
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
@@ -58,7 +60,6 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         getLogger().info("Saving data");
 
         FileConfiguration config = getConfig();
-        config.set(CONF_PATH, null);
 
         for(MobRoot root : rootMobs) {
             Map<Entity, Location> map = root.getEntityMap();
@@ -189,7 +190,9 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
     private void loadEntities() {
 
-        boolean loaded = true;
+        if(loaded)
+            return;
+        loaded = true;
 
         FileConfiguration config = getConfig();
         ConfigurationSection section = config.getConfigurationSection(CONF_PATH);
@@ -225,10 +228,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
             }
         } else loaded = false;
 
-        if(loaded) {
-            getLogger().info("Loaded");
-            config.set(CONF_PATH, null);
-        }
+        if(loaded) getLogger().info("Loaded");
     }
 
     private void cleanEntityList() {
@@ -237,6 +237,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                     root.getRootEntity() == null || root.getRootEntity().isDead()) {
                 root.removeAllEntity();
                 rootMobs.remove(root);
+                getConfig().set(CONF_PATH + "." + root.getRootEntity().getUniqueId().toString(), null);
                 getLogger().fine("Removed " + root.toString() + " from list");
             }
         }
@@ -281,6 +282,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
             root.setMark(false);
             playerSelections.remove(player);
+            cleanEntityList();
 
             getLogger().fine("Deselected " + root.toString());
         }
