@@ -35,7 +35,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
 
-        loadEntities();
+        getServer().getScheduler().runTaskLater(this, () -> loadEntities(), 120);
 
         getServer().getScheduler().runTaskTimer(this, () -> {
             for(MobRoot root : rootMobs) {
@@ -189,6 +189,8 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
     private void loadEntities() {
 
+        boolean loaded = true;
+
         FileConfiguration config = getConfig();
         ConfigurationSection section = config.getConfigurationSection(CONF_PATH);
 
@@ -217,10 +219,15 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                         Entity child = getServer().getEntity(UUID.fromString(childId));
                         if(child != null) {
                             root.addEntity(child, new Location(rootEntity.getWorld(), x, y, z, yaw, pitch));
-                        }
+                        } else loaded = false;
                     }
-                }
+                } else loaded = false;
             }
+        } else loaded = false;
+
+        if(loaded) {
+            getLogger().info("Loaded");
+            config.set(CONF_PATH, null);
         }
     }
 
