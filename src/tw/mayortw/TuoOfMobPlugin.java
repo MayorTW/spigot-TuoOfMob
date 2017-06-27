@@ -83,7 +83,9 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent eve) {
-        loadEntities(eve.getChunk().getEntities());
+        for(World world : getServer().getWorlds()) {
+            loadEntities(world.getEntities().toArray(new Entity[0]));
+        }
     }
 
     @EventHandler
@@ -191,7 +193,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         return rst;
     }
 
-    private void loadEntities(Entity[] entities) {
+    private void loadEntities(List<Entity> entities) {
 
         FileConfiguration config = getConfig();
         ConfigurationSection section = config.getConfigurationSection(CONF_PATH);
