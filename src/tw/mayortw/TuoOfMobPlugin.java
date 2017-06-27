@@ -35,11 +35,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
 
-        getServer().getScheduler().runTaskLater(this, () -> {
-            for(World world : getServer().getWorlds()) {
-                loadEntities(world.getEntities().toArray(new Entity[0]));
-            }
-        }, 60);
+        loadEntities();
 
         getServer().getScheduler().runTaskTimer(this, () -> {
             for(MobRoot root : rootMobs) {
@@ -83,9 +79,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
 
     @EventHandler
     public void onChunkLoad(ChunkLoadEvent eve) {
-        for(World world : getServer().getWorlds()) {
-            loadEntities(world.getEntities().toArray(new Entity[0]));
-        }
+        loadEntities();
     }
 
     @EventHandler
@@ -193,20 +187,15 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
         return rst;
     }
 
-    private void loadEntities(List<Entity> entities) {
+    private void loadEntities() {
 
         FileConfiguration config = getConfig();
         ConfigurationSection section = config.getConfigurationSection(CONF_PATH);
 
         if(section != null) {
             for(String rootId : section.getKeys(false)) {
-                Entity rootEntity = null;
-                for(Entity entity : entities) {
-                    if(entity.getUniqueId().toString().equals(rootId)) {
-                        rootEntity = entity;
-                        break;
-                    }
-                }
+
+                Entity rootEntity = getServer().getEntity(UUID.fromString(rootId));
                 if(rootEntity != null) {
 
                     MobRoot root = findMobRoot(rootEntity);
@@ -225,14 +214,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                         float yaw = (float) config.getDouble(path + ".yaw");
                         float pitch = (float) config.getDouble(path + ".pitch");
 
-                        Entity child = null;
-                        for(Entity entity : entities) {
-                            if(entity.getUniqueId().toString().equals(childId)) {
-                                child = entity;
-                                break;
-                            }
-                        }
-
+                        Entity child = getServer().getEntity(UUID.fromString(childId));
                         if(child != null) {
                             root.addEntity(child, new Location(rootEntity.getWorld(), x, y, z, yaw, pitch));
                         }
