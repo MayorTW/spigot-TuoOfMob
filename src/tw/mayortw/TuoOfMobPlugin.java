@@ -226,7 +226,7 @@ public class TuoOfMobPlugin extends JavaPlugin implements Listener {
                     }
                 } else loaded = false;
             }
-        } else loaded = false;
+        }
 
         if(loaded) getLogger().info("Loaded");
     }
